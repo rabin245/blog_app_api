@@ -1,5 +1,6 @@
 const bcrypt = require("bcrypt");
 const db = require("../db");
+const jwt = require("jsonwebtoken");
 
 const register = (req, res) => {
   // check if user exists
@@ -29,7 +30,34 @@ const register = (req, res) => {
     });
   });
 };
-const login = (req, res) => {};
+const login = (req, res) => {
+  // check if user exists
+  const query = "SELECT * FROM users where username = ?";
+
+  db.query(query, [req.body.username], (err, data) => {
+    if (err) return res.json(err);
+
+    if (data.length === 0) return res.status(404).json("user not found!");
+
+    const isPasswordCorrect = bcrypt.compareSync(
+      req.body.password,
+      data[0].password
+    );
+
+    if (!isPasswordCorrect)
+      return res.status(400).json("Wrong username or password!");
+
+    const token = jwt.sign({ id: data[0].id }, "jwtkey");
+    const { password, ...other } = data[0];
+
+    res
+      .cookie("access_token", token, {
+        httpOnly: true,
+      })
+      .status(200)
+      .json(other);
+  });
+};
 const logout = (req, res) => {};
 
 module.exports = {
