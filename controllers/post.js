@@ -1,3 +1,4 @@
+const jwt = require("jsonwebtoken");
 const db = require("../db");
 
 const getPosts = (req, res) => {
@@ -6,7 +7,7 @@ const getPosts = (req, res) => {
     : "SELECT * FROM posts";
 
   db.query(query, [req.query.cat], (err, data) => {
-    if (err) return res.send(err);
+    if (err) return res.status(500).send(err);
 
     return res.status(200).json(data);
   });
@@ -30,7 +31,24 @@ const addPost = (req, res) => {
 };
 
 const deletePost = (req, res) => {
-  res.send("from controller");
+  const token = req.cookies.access_token;
+
+  if (!token) return res.status(401).json("Not Authorized!");
+
+  jwt.verify(token, "jwtkey", (err, decodedUserInfo) => {
+    if (err) return res.status(403).json("Invalid Token!");
+
+    const postId = req.params.id;
+
+    const query = "DELETE FROM posts WHERE id = ? AND uid = ?";
+
+    db.query(query, [postId, decodedUserInfo.id], (err, data) => {
+      if (err)
+        return res.status(403).json("You can only delete your own posts!");
+
+      return res.status(200).json("Post deleted successfully!");
+    });
+  });
 };
 
 const updatePost = (req, res) => {
