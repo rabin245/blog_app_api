@@ -26,8 +26,36 @@ const getPost = (req, res) => {
     return res.status(200).json(data);
   });
 };
+
 const addPost = (req, res) => {
-  res.send("from controller");
+  const token = req.cookies.access_token;
+
+  if (!token) return res.status(401).json("Not Authorized!");
+
+  jwt.verify(token, "jwtkey", (err, decodedUserInfo) => {
+    if (err) return res.status(403).json("Invalid Token!");
+
+    const query =
+      "INSERT INTO posts(`uid`, `title`, `desc`, `img`, `cat`, `date`) VALUES(?)";
+
+    const values = [
+      decodedUserInfo.id,
+      req.body.title,
+      req.body.desc,
+      req.body.img ||
+        "https://images.pexels.com/photos/7008010/pexels-photo-7008010.jpeg?auto=compress&cs=tinysrgb&dpr=2",
+      req.body.cat,
+      req.body.date,
+    ];
+
+    db.query(query, [values], (err, data) => {
+      if (err) return res.status(500).json(err);
+
+      return res
+        .status(200)
+        .json({ msg: "Post created successfully!", id: data.insertId });
+    });
+  });
 };
 
 const deletePost = (req, res) => {
@@ -52,7 +80,39 @@ const deletePost = (req, res) => {
 };
 
 const updatePost = (req, res) => {
-  res.send("from controller");
+  const token = req.cookies.access_token;
+
+  if (!token) return res.status(401).json("Not Authorized!");
+
+  jwt.verify(token, "jwtkey", (err, decodedUserInfo) => {
+    if (err) return res.status(403).json("Invalid Token!");
+
+    const query = req.body.img
+      ? "UPDATE posts SET title=?, `desc`=?, img=?, cat=? WHERE id=? AND uid=?"
+      : "UPDATE posts SET title=?, `desc`=?, cat=? WHERE id=? AND uid=?";
+    const values = req.body.img
+      ? [
+          req.body.title,
+          req.body.desc,
+          req.body.img,
+          req.body.cat,
+          req.params.id,
+          decodedUserInfo.id,
+        ]
+      : [
+          req.body.title,
+          req.body.desc,
+          req.body.cat,
+          req.params.id,
+          decodedUserInfo.id,
+        ];
+
+    db.query(query, [...values], (err, data) => {
+      if (err) return res.status(500).json(err);
+
+      return res.status(200).json("Post updated successfully!");
+    });
+  });
 };
 
 module.exports = {
