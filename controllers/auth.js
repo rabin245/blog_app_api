@@ -1,6 +1,7 @@
 const bcrypt = require("bcrypt");
 const db = require("../db");
 const jwt = require("jsonwebtoken");
+require("dotenv").config();
 
 const register = (req, res) => {
   // check if user exists
@@ -47,7 +48,7 @@ const login = (req, res) => {
     if (!isPasswordCorrect)
       return res.status(400).json("Wrong username or password!");
 
-    const token = jwt.sign({ id: data[0].id }, "jwtkey");
+    const token = jwt.sign({ id: data[0].id }, process.env.JWT_PRIVATE_KEY);
     const { password, ...other } = data[0];
 
     res

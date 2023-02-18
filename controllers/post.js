@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
 const db = require("../db");
+require("dotenv").config();
 
 const getPosts = (req, res) => {
   const query = req.query.cat
@@ -32,7 +33,7 @@ const addPost = (req, res) => {
 
   if (!token) return res.status(401).json("Not Authorized!");
 
-  jwt.verify(token, "jwtkey", (err, decodedUserInfo) => {
+  jwt.verify(token, process.env.JWT_PRIVATE_KEY, (err, decodedUserInfo) => {
     if (err) return res.status(403).json("Invalid Token!");
 
     const query =
@@ -63,7 +64,7 @@ const deletePost = (req, res) => {
 
   if (!token) return res.status(401).json("Not Authorized!");
 
-  jwt.verify(token, "jwtkey", (err, decodedUserInfo) => {
+  jwt.verify(token, process.env.JWT_PRIVATE_KEY, (err, decodedUserInfo) => {
     if (err) return res.status(403).json("Invalid Token!");
 
     const postId = req.params.id;
@@ -84,7 +85,7 @@ const updatePost = (req, res) => {
 
   if (!token) return res.status(401).json("Not Authorized!");
 
-  jwt.verify(token, "jwtkey", (err, decodedUserInfo) => {
+  jwt.verify(token, process.env.JWT_PRIVATE_KEY, (err, decodedUserInfo) => {
     if (err) return res.status(403).json("Invalid Token!");
 
     const query = req.body.img
