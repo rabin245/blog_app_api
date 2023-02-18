@@ -29,90 +29,65 @@ const getPost = (req, res) => {
 };
 
 const addPost = (req, res) => {
-  const token = req.cookies.access_token;
+  const query =
+    "INSERT INTO posts(`uid`, `title`, `desc`, `img`, `cat`, `date`) VALUES(?)";
 
-  if (!token) return res.status(401).json("Not Authorized!");
+  const values = [
+    req.userInfo.id,
+    req.body.title,
+    req.body.desc,
+    req.body.img ||
+      "https://images.pexels.com/photos/7008010/pexels-photo-7008010.jpeg?auto=compress&cs=tinysrgb&dpr=2",
+    req.body.cat,
+    req.body.date,
+  ];
 
-  jwt.verify(token, process.env.JWT_PRIVATE_KEY, (err, decodedUserInfo) => {
-    if (err) return res.status(403).json("Invalid Token!");
+  db.query(query, [values], (err, data) => {
+    if (err) return res.status(500).json(err);
 
-    const query =
-      "INSERT INTO posts(`uid`, `title`, `desc`, `img`, `cat`, `date`) VALUES(?)";
-
-    const values = [
-      decodedUserInfo.id,
-      req.body.title,
-      req.body.desc,
-      req.body.img ||
-        "https://images.pexels.com/photos/7008010/pexels-photo-7008010.jpeg?auto=compress&cs=tinysrgb&dpr=2",
-      req.body.cat,
-      req.body.date,
-    ];
-
-    db.query(query, [values], (err, data) => {
-      if (err) return res.status(500).json(err);
-
-      return res
-        .status(200)
-        .json({ msg: "Post created successfully!", id: data.insertId });
-    });
+    return res
+      .status(200)
+      .json({ msg: "Post created successfully!", id: data.insertId });
   });
 };
 
 const deletePost = (req, res) => {
-  const token = req.cookies.access_token;
+  const postId = req.params.id;
 
-  if (!token) return res.status(401).json("Not Authorized!");
+  const query = "DELETE FROM posts WHERE id = ? AND uid = ?";
 
-  jwt.verify(token, process.env.JWT_PRIVATE_KEY, (err, decodedUserInfo) => {
-    if (err) return res.status(403).json("Invalid Token!");
+  db.query(query, [postId, req.userInfo.id], (err, data) => {
+    if (err) return res.status(403).json("You can only delete your own posts!");
 
-    const postId = req.params.id;
-
-    const query = "DELETE FROM posts WHERE id = ? AND uid = ?";
-
-    db.query(query, [postId, decodedUserInfo.id], (err, data) => {
-      if (err)
-        return res.status(403).json("You can only delete your own posts!");
-
-      return res.status(200).json("Post deleted successfully!");
-    });
+    return res.status(200).json("Post deleted successfully!");
   });
 };
 
 const updatePost = (req, res) => {
-  const token = req.cookies.access_token;
+  const query = req.body.img
+    ? "UPDATE posts SET title=?, `desc`=?, img=?, cat=? WHERE id=? AND uid=?"
+    : "UPDATE posts SET title=?, `desc`=?, cat=? WHERE id=? AND uid=?";
+  const values = req.body.img
+    ? [
+        req.body.title,
+        req.body.desc,
+        req.body.img,
+        req.body.cat,
+        req.params.id,
+        req.userInfo.id,
+      ]
+    : [
+        req.body.title,
+        req.body.desc,
+        req.body.cat,
+        req.params.id,
+        req.userInfo.id,
+      ];
 
-  if (!token) return res.status(401).json("Not Authorized!");
+  db.query(query, [...values], (err, data) => {
+    if (err) return res.status(500).json(err);
 
-  jwt.verify(token, process.env.JWT_PRIVATE_KEY, (err, decodedUserInfo) => {
-    if (err) return res.status(403).json("Invalid Token!");
-
-    const query = req.body.img
-      ? "UPDATE posts SET title=?, `desc`=?, img=?, cat=? WHERE id=? AND uid=?"
-      : "UPDATE posts SET title=?, `desc`=?, cat=? WHERE id=? AND uid=?";
-    const values = req.body.img
-      ? [
-          req.body.title,
-          req.body.desc,
-          req.body.img,
-          req.body.cat,
-          req.params.id,
-          decodedUserInfo.id,
-        ]
-      : [
-          req.body.title,
-          req.body.desc,
-          req.body.cat,
-          req.params.id,
-          decodedUserInfo.id,
-        ];
-
-    db.query(query, [...values], (err, data) => {
-      if (err) return res.status(500).json(err);
-
-      return res.status(200).json("Post updated successfully!");
-    });
+    return res.status(200).json("Post updated successfully!");
   });
 };
 

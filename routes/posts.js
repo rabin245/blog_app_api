@@ -8,10 +8,12 @@ const {
   updatePost,
 } = require("../controllers/post");
 
+const auth = require("../middleware/auth");
+
 router.get("/", getPosts);
 router.get("/:id", getPost);
-router.post("/", addPost);
-router.delete("/:id", deletePost);
-router.put("/:id", updatePost);
+router.post("/", auth, addPost);
+router.delete("/:id", auth, deletePost);
+router.put("/:id", auth, updatePost);
 
 module.exports = router;
