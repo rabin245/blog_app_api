@@ -4,9 +4,33 @@ require("dotenv").config();
 
 const getPosts = (req, res) => {
   const query = req.query.cat
-    ? "SELECT * FROM posts WHERE cat=?"
-    : "SELECT * FROM posts";
+    ? `SELECT 
+        p.id,
+        p.title,
+        p.desc,
+        p.img,
+        p.date,
+        p.uid,
+        p.cat_id,
+        cp.category as cat  
+      FROM categories_posts cp 
+      JOIN posts p ON cp.id=p.cat_id
+      WHERE cp.category = ?;`
+    : `SELECT  
+        p.id,
+        p.title,
+        p.desc,
+        p.img,
+        p.date,
+        p.uid,
+        p.cat_id,
+        cp.category as cat 
+      FROM categories_posts cp 
+      JOIN posts p ON cp.id=p.cat_id`;
 
+  // SELECT column FROM table
+  // ORDER BY RAND()
+  // LIMIT 10
   db.query(query, [req.query.cat], (err, data) => {
     if (err) return res.status(500).send(err);
 
@@ -15,8 +39,22 @@ const getPosts = (req, res) => {
 };
 
 const getPost = (req, res) => {
-  const query =
-    "SELECT u.username, u.img AS userImage, p.title, p.desc, p.img, p.date, p.cat FROM users u JOIN posts p ON u.id = p.uid WHERE p.id = ? ";
+  const query = `
+  SELECT u.username,
+    u.img as userImage,
+    p.id,
+    p.title,
+    p.desc,
+    p.img,
+    p.date,
+    p.uid,
+    p.cat_id,
+    cp.category as cat
+  FROM categories_posts cp
+    JOIN posts p ON cp.id = p.cat_id
+    JOIN users u ON p.uid = u.id
+  WHERE p.id = ?;
+  `;
 
   db.query(query, [req.params.id], (err, data) => {
     if (err) return res.send(err);
@@ -29,25 +67,34 @@ const getPost = (req, res) => {
 };
 
 const addPost = (req, res) => {
-  const query =
-    "INSERT INTO posts(`uid`, `title`, `desc`, `img`, `cat`, `date`) VALUES(?)";
+  // get the category id
+  const queryCat = "SELECT id FROM categories_posts WHERE category = ?";
 
-  const values = [
-    req.userInfo.id,
-    req.body.title,
-    req.body.desc,
-    req.body.img ||
-      "https://images.pexels.com/photos/7008010/pexels-photo-7008010.jpeg?auto=compress&cs=tinysrgb&dpr=2",
-    req.body.cat,
-    req.body.date,
-  ];
-
-  db.query(query, [values], (err, data) => {
+  db.query(queryCat, [req.body.cat], (err, data) => {
     if (err) return res.status(500).json(err);
 
-    return res
-      .status(200)
-      .json({ msg: "Post created successfully!", id: data.insertId });
+    req.body.cat = data[0].id;
+
+    const query =
+      "INSERT INTO posts(`uid`, `title`, `desc`, `img`, `cat_id`, `date`) VALUES(?)";
+
+    const values = [
+      req.userInfo.id,
+      req.body.title,
+      req.body.desc,
+      req.body.img ||
+        "https://images.pexels.com/photos/7008010/pexels-photo-7008010.jpeg?auto=compress&cs=tinysrgb&dpr=2",
+      req.body.cat,
+      req.body.date,
+    ];
+
+    db.query(query, [values], (err, data) => {
+      if (err) return res.status(500).json(err);
+
+      return res
+        .status(200)
+        .json({ msg: "Post created successfully!", id: data.insertId });
+    });
   });
 };
 
@@ -64,30 +111,38 @@ const deletePost = (req, res) => {
 };
 
 const updatePost = (req, res) => {
-  const query = req.body.img
-    ? "UPDATE posts SET title=?, `desc`=?, img=?, cat=? WHERE id=? AND uid=?"
-    : "UPDATE posts SET title=?, `desc`=?, cat=? WHERE id=? AND uid=?";
-  const values = req.body.img
-    ? [
-        req.body.title,
-        req.body.desc,
-        req.body.img,
-        req.body.cat,
-        req.params.id,
-        req.userInfo.id,
-      ]
-    : [
-        req.body.title,
-        req.body.desc,
-        req.body.cat,
-        req.params.id,
-        req.userInfo.id,
-      ];
+  const queryCat = "SELECT id FROM categories_posts WHERE category = ?";
 
-  db.query(query, [...values], (err, data) => {
+  db.query(queryCat, [req.body.cat], (err, data) => {
     if (err) return res.status(500).json(err);
 
-    return res.status(200).json("Post updated successfully!");
+    req.body.cat = data[0].id;
+
+    const query = req.body.img
+      ? "UPDATE posts SET title=?, `desc`=?, img=?, cat_id=? WHERE id=? AND uid=?"
+      : "UPDATE posts SET title=?, `desc`=?, cat_id=? WHERE id=? AND uid=?";
+    const values = req.body.img
+      ? [
+          req.body.title,
+          req.body.desc,
+          req.body.img,
+          req.body.cat,
+          req.params.id,
+          req.userInfo.id,
+        ]
+      : [
+          req.body.title,
+          req.body.desc,
+          req.body.cat,
+          req.params.id,
+          req.userInfo.id,
+        ];
+
+    db.query(query, [...values], (err, data) => {
+      if (err) return res.status(500).json(err);
+
+      return res.status(200).json("Post updated successfully!");
+    });
   });
 };
 
