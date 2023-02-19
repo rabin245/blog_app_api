@@ -17,9 +17,15 @@ const register = (req, res) => {
     const hash = bcrypt.hashSync(req.body.password, salt);
 
     const query =
-      "INSERT INTO users(`username`, `email`, `password`) VALUES(?)";
+      "INSERT INTO users(`username`, `email`, `password`, `img`) VALUES(?)";
 
-    const values = [req.body.username, req.body.email, hash];
+    const values = [
+      req.body.username,
+      req.body.email,
+      hash,
+      req.body.img ||
+        "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb",
+    ];
 
     db.query(query, [values], (err, data) => {
       if (err) return res.json(err);
