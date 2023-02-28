@@ -1,6 +1,6 @@
 # Blog App Backend
 
-This is the backend server of the [Blog App](https://github.com/rabin245/blog_app_api).
+This is the backend server of the [Blog App](https://github.com/rabin245/blog_app_frontend).
 
 ## Installation
 
